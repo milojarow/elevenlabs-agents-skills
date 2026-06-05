@@ -1,0 +1,15 @@
+{
+  "id": "elevenlabs-agents-005",
+  "skills": ["elevenlabs-agents"],
+  "query": "In an ElevenLabs agent workflow I have a hub node and an appointment node. I want the conversation to go hub -> appointment and also return to hub if the user changes their mind. I added a second edge from appointment back to hub and got a 422 'Duplicate edge' error. How should I model the round trip?",
+  "expected_behavior": [
+    "activate the elevenlabs-agents skill",
+    "identify that the round trip is ONE edge with a backward_condition, not two edges",
+    "explain a second edge between the same node pair triggers 422 'Duplicate edge'",
+    "tell the user to add backward_condition to the existing forward (hub -> appointment) edge",
+    "show the edge shape with forward_condition + backward_condition"
+  ],
+  "expected_content": ["backward_condition", "Duplicate edge", "one edge", "reference/workflows.md"],
+  "priority": "high",
+  "notes": "Guards the workflow round-trip. Baseline explicitly said it did not know the construct and guessed."
+}

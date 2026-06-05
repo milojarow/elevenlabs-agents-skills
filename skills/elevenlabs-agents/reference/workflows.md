@@ -1,0 +1,52 @@
+# Workflows (the state machine)
+
+A workflow turns an agent into a **state machine**: `nodes` (states, each with its own prompt + tool scope) and `edges` (transitions the LLM takes when a condition matches). It lives in the agent config as `workflow: { nodes, edges, prevent_subagent_loops }`.
+
+## Nodes
+
+Each node is keyed by an id. Types seen: `start` (entry — the start node id must be `start_node`), `override_agent` (a working state: its own `additional_prompt` + `additional_knowledge_base` + `additional_tool_ids`), `end`, plus routing/transfer types (`dispatch_tool`, `agent_transfer`, `transfer_to_number`).
+
+```jsonc
+hub: {
+  type: "override_agent",
+  label: "Triage",
+  additional_prompt: "<the node's instructions — the per-state behavior>",
+  additional_knowledge_base: [ … ],
+  additional_tool_ids: [],               // TOOLS ARE SCOPED PER NODE — see below
+  conversation_config: { agent: { prompt: { built_in_tools: {} } } },
+  position: { x: 0, y: 200 },            // REQUIRED (x,y) or the push is rejected
+  edge_order: ["e_hub_a", "e_hub_b"],
+  auto_advance_after_first_response: false
+}
+```
+
+- **`position {x,y}` is required** on every node.
+- **Per-node tool scoping:** put a node's allowed tool ids in `additional_tool_ids`. A routing/conversation node that shouldn't call tools gets `[]`. The flow's tools are the **union across nodes** — every tool a node references must exist (a deleted/stale id fails the conversation on node entry; see [operating-cli-api.md](operating-cli-api.md)).
+- The **node prompt is where the per-state logic lives** — including pinning a value the LLM must not guess (see [tools-and-integrations.md](tools-and-integrations.md)).
+
+## Edges + the `backward_condition` round-trip ⚠️
+
+An edge has a `forward_condition` and an optional `backward_condition`:
+
+```jsonc
+e_hub_appointment: {
+  source: "hub", target: "appointment",
+  forward_condition: { type: "llm", label: "Book", condition: "The user wants to book a NEW appointment." },
+  backward_condition: { type: "llm", label: "Changed mind", condition: "The user changed their mind or wants to ask something else." }
+}
+```
+
+- `forward_condition.type`: `unconditional` (always) | `llm` (judged by the model from `condition`) | `expression`.
+- **The round trip (go AND return) is ONE edge with a `backward_condition`, NOT two edges.** Adding a second edge between the same ordered pair (e.g. `appointment → hub`) returns **422 "Duplicate edge."** The `backward_condition` on the existing `hub → appointment` edge IS the return path.
+
+So a hub-and-spokes flow: each spoke is reached by a forward edge carrying its own `backward_condition` for "user backed out." Don't model the return as its own edge.
+
+## Routing is internal `transfer_to_agent`
+
+When a workflow takes an edge, the transcript shows a system `transfer_to_agent` tool call (same agent id, `to_node: <target>`). That's normal — it's how the engine moves between nodes. You'll see `notify_condition_*_met` entries with the `edge_id` and `target_node_id` in the tool results.
+
+## Make the node assert its capability (so it doesn't refuse)
+
+A node that owns a capability must SAY so in its prompt, or the model may refuse ("I don't have access to do that") instead of using its tools. If a "manage X" node has the tools but the base/hub prompt implies the agent can't, the model hedges. State plainly in the relevant node prompt: "doing X is your job, with your tools — never tell the user you can't or send them elsewhere."
+
+> Reminder: you can't truly test routing with `simulate-conversation` — it doesn't run the workflow at all. Validate with a real conversation + the transcript's `agent_metadata.workflow_node_id`. See [verification-and-gotchas.md](verification-and-gotchas.md).

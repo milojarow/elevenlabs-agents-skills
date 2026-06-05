@@ -1,0 +1,15 @@
+{
+  "id": "elevenlabs-agents-006",
+  "skills": ["elevenlabs-agents"],
+  "query": "I'm testing my ElevenLabs agent with the simulate-conversation endpoint, but in the simulation the agent refuses to use its tools and says it has no access — even though the same tools work fine in real chats. Why?",
+  "expected_behavior": [
+    "activate the elevenlabs-agents skill",
+    "explain that simulate-conversation runs ONLY the base prompt and does NOT execute the workflow state machine",
+    "note that because tools are scoped per workflow node and the base agent tool_ids is often empty, the simulated agent has no tools and improvises/refuses",
+    "correct the wrong intuition that 'the simulator mocks/skips tool execution' — the whole workflow is bypassed (workflow_node_id is null in simulation)",
+    "tell the user to test a workflow with a REAL conversation and read the transcript instead"
+  ],
+  "expected_content": ["does not run the workflow", "base prompt", "workflow_node_id", "real conversation", "reference/verification-and-gotchas.md"],
+  "priority": "high",
+  "notes": "Guards the simulate blind spot. Baseline guessed WRONG (thought it was tool-execution wiring), so the skill must correct that specific misconception."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "elevenlabs-agents-001",
+  "skills": ["elevenlabs-agents"],
+  "query": "I edited my ElevenLabs agent's system prompt and pushed it via the API, but when I test the agent in the dashboard it still shows the old prompt. What's going on and how do I make it take effect?",
+  "expected_behavior": [
+    "activate the elevenlabs-agents skill",
+    "explain draft vs saved vs what-a-conversation-uses are three different states",
+    "identify the dashboard is showing a stale draft/cached view while the API GET already has the change",
+    "tell the user to hard-reload (F5) the dashboard and trust GET /agents/{id} as source of truth",
+    "note the widget caches config at page load so a live conversation needs a page reload too"
+  ],
+  "expected_content": ["draft", "saved", "hard-reload", "GET /agents", "reference/operating-cli-api.md"],
+  "priority": "high",
+  "notes": "Guards against the #1 'my change didn't take' confusion. Baseline model only vaguely guessed 'draft/publish' without the cache/F5/GET-source-of-truth specifics."
+}

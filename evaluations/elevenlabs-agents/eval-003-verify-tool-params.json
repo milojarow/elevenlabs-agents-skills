@@ -1,0 +1,15 @@
+{
+  "id": "elevenlabs-agents-003",
+  "skills": ["elevenlabs-agents"],
+  "query": "How can I objectively verify which exact parameters my ElevenLabs agent's LLM passed to a tool during a conversation — the real arguments, not what it claimed in the chat?",
+  "expected_behavior": [
+    "activate the elevenlabs-agents skill",
+    "route to reading the conversation transcript via the convai conversations API",
+    "name the path: GET /convai/conversations to find the id, then GET /convai/conversations/{id}",
+    "point to transcript[].tool_calls[].params_as_json as the exact emitted arguments",
+    "mention tool_results[] for the endpoint response and workflow_node_id for which node ran"
+  ],
+  "expected_content": ["conversations", "params_as_json", "transcript", "reference/verification-and-gotchas.md"],
+  "priority": "high",
+  "notes": "Guards verification discipline. Baseline had the right concept but not the endpoint path or the params_as_json field."
+}

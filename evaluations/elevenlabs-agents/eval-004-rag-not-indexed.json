@@ -1,0 +1,15 @@
+{
+  "id": "elevenlabs-agents-004",
+  "skills": ["elevenlabs-agents"],
+  "query": "I attached my .md docs to my ElevenLabs agent's knowledge base and turned on RAG, but the agent isn't using them and the knowledge-base page shows 'RAG Storage: 0 B'. What's wrong?",
+  "expected_behavior": [
+    "activate the elevenlabs-agents skill",
+    "explain that uploading a doc is not the same as indexing it for RAG; 0 B means nothing was embedded",
+    "tell the user the docs must be attached in the AGENT's knowledge base (not only the global KB) with RAG enabled",
+    "say re-attaching the docs in the agent KB with RAG on triggers indexing and the RAG-storage counter rising is the confirmation",
+    "optionally mention the embedding_model choice (multilingual_e5_large_instruct for Spanish)"
+  ],
+  "expected_content": ["uploading", "index", "agent's knowledge base", "RAG Storage", "reference/agent-configuration.md"],
+  "priority": "high",
+  "notes": "Guards the RAG-0B trap. Baseline diagnosed 'not embedded' but guessed the remediation."
+}

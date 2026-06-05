@@ -1,0 +1,25 @@
+{
+  "name": "elevenlabs-agents-skills",
+  "description": "Operating manual for the ElevenLabs Conversational AI Agents Platform — building, configuring, and debugging agents as code via the elevenlabs CLI and convai REST API.",
+  "owner": {
+    "name": "milojarow",
+    "url": "https://github.com/milojarow"
+  },
+  "plugins": [
+    {
+      "name": "elevenlabs-agents-skills",
+      "source": "./",
+      "description": "Use when building, configuring, or debugging an ElevenLabs Conversational AI agent (Agents Platform) — agent config, workflows, tools/integrations, RAG, guardrails — via the elevenlabs CLI or convai REST API.",
+      "version": "0.1.0",
+      "author": {
+        "name": "milojarow",
+        "url": "https://github.com/milojarow"
+      },
+      "category": "ai",
+      "keywords": ["elevenlabs", "conversational-ai", "voice-agents", "agent-workflows", "convai-api", "rag"],
+      "homepage": "https://github.com/milojarow/elevenlabs-agents-skills",
+      "repository": "https://github.com/milojarow/elevenlabs-agents-skills",
+      "license": "MIT"
+    }
+  ]
+}
