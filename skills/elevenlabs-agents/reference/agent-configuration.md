@@ -63,3 +63,15 @@ Reference runtime values in any prompt with `{{system__<name>}}` — **system va
 - `{{system__conversation_id}}`, `{{system__caller_id}}`, `{{system__agent_id}}`, `{{system__call_duration_secs}}`, `{{system__is_text_only}}`, `{{system__conversation_history}}`.
 
 **Interpolation is reliable in the base system prompt.** Put time-dependent instructions there (e.g. "the local time is {{system__time}}; greet accordingly") rather than relying on a workflow node prompt to resolve them.
+
+### Showing calendar slots in local time (UTC → local) ⚠️
+
+Calendar integration tools — Cal.com `calcom_get_available_slots`, and calendar integrations generally — return available times in **UTC**. If the prompt doesn't handle it, the agent (1) shows the raw UTC times and (2) asks the client for their timezone — bad UX that makes clients abandon (e.g. the client asks for "9 AM", the bot lists "15:30 UTC, 16:15 UTC…" and asks "what city are you in?").
+
+Reliable fix = a global rule in the **base** system prompt:
+
+- **Never** ask the client for their timezone — assume the **business's** timezone.
+- **Always** convert slot times from UTC to the business's local time BEFORE showing them; present only local 12-h time (AM/PM), never with a "UTC" label.
+- Convert **DST-safe** (don't hardcode an offset that breaks in winter): derive the live offset as `{{system__time}}` (current local time) minus `{{system__time_utc}}` (current UTC), then apply that same offset to every slot. Both system vars are always available, so the model derives the offset live.
+
+State this explicitly — the model does NOT solve it on its own, and it only surfaces when you **offer a list** of times: in booking the client usually gives a time directly so it goes unnoticed; in rescheduling the bot offers the list and it breaks.
