@@ -49,4 +49,14 @@ When a workflow takes an edge, the transcript shows a system `transfer_to_agent`
 
 A node that owns a capability must SAY so in its prompt, or the model may refuse ("I don't have access to do that") instead of using its tools. If a "manage X" node has the tools but the base/hub prompt implies the agent can't, the model hedges. State plainly in the relevant node prompt: "doing X is your job, with your tools — never tell the user you can't or send them elsewhere."
 
+## A terminal node can short-circuit — put final messages on the WORKING node ⚠️
+
+A terminal node (e.g. a "close"/goodbye node whose only job is to say a closing line before `end`) gets **skipped** when its outgoing edge to `end` is ALREADY satisfied on entry. If the user says "that's all / nothing else" while still in the working node, the flow transitions to "close" — but because the `close → end` condition ("the user has no more questions") is already true, the node fires the transition to `end` (via the routing tool) **without generating its own response**. The `end_call` happens with empty text and the goodbye (or any message that lived in that terminal node) is **never spoken** — even though the node prompt orders it.
+
+Transcript symptom: `agent_metadata.workflow_node_id` shows it DID enter "close", but that node's turns have an empty `message` and only `tool_calls=[notify_condition_*_met]` (the transition), with `termination_reason = "end_call tool was called"`.
+
+**Fix:** don't rely on a later terminal node for critical final messages. Put the message (goodbye, close confirmation) in the **working node's confirmation message** — the node that performed the action (book/manage/etc.), which the model always generates. When the working node confirms the action ("your appointment is booked…"), have THAT message carry the goodbye too. Reinforcing the instruction in the close node doesn't help, because the node is skipped without speaking.
+
+> `end_call` is a global built-in tool; the model calls it as a turn action with no accompanying text when it judges "the user is done."
+
 > Reminder: you can't truly test routing with `simulate-conversation` — it doesn't run the workflow at all. Validate with a real conversation + the transcript's `agent_metadata.workflow_node_id`. See [verification-and-gotchas.md](verification-and-gotchas.md).
