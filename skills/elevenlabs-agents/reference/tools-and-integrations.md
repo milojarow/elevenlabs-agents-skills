@@ -74,3 +74,20 @@ When an agent "invents" a parameter value, the first step is to confirm whether 
 ### A parameter the LLM shouldn't fill
 
 On integration tools the request schema (and its `constant_value`) is owned by the integration and won't persist your edits. If a small model keeps guessing a parameter (an id, a filter), pin the value in the workflow **node prompt**, or rebuild as a plain `webhook` tool with the value baked in. Also watch enum-valued filters: passing an invalid status filter (e.g. a record's own status string used as a list filter) silently returns zero rows — use the documented filter values only. See [verification-and-gotchas.md](verification-and-gotchas.md).
+
+### When the integration schema BLOCKS you → wrap it with your own webhook tool
+
+Worse than a non-persisting `constant_value`: **a parameter you need isn't in the integration's base schema at all**, so the LLM can't pass it and pinning it in the prompt does nothing. The base schema comes from the integration template and is **not editable by API** — a `PATCH` to `base_api_schema` returns 200 but is silently discarded; overrides go in `api_schema_overrides.schema_overrides` with a union shape discriminated by `source` (422 `Unable to extract tag using discriminator 'source'` if you don't match it) — in practice editable only via the dashboard.
+
+**Example (timezone):** a Cal.com `get_available_slots` integration tool that sends no `timeZone` → Cal.com returns slots in **UTC** → the LLM has to convert UTC→local and does it **wrong** (off by the offset). "Fixing" it with a fixed subtraction in the prompt (e.g. "−5 hours") then breaks on every **DST** change.
+
+**Robust fix — replace the integration tool with your own `webhook` tool to a backend you control:**
+
+1. Build an endpoint that calls the upstream API with the right params, does the transform **in code** (real tz library = DST-correct), and returns clean fields. The schema is 100% yours. Bake fixed values (e.g. the `eventTypeId`) in server-side so the LLM never touches them.
+2. Create the `type: "webhook"` tool via `POST /convai/tools`. **Model it on a webhook tool that ALREADY works in that agent** (GET its config, change name/url/request_body_schema, POST). Header secret = `{"secret_id":"…"}` (reuse the same secret).
+3. **Repoint the nodes:** GET the full agent, in the relevant nodes swap old→new id in `additional_tool_ids` and `gsub` the tool name in `additional_prompt`, then `PATCH` the **whole workflow** back (full replacement, not partial). Then `PATCH` the agent prompt to drop the by-LLM conversion instruction.
+4. **Verify with a real conversation** (offered times vs real times), not the self-report or `simulate`.
+
+**Slot/time pattern:** always return TWO fields per slot — a **display value** (local time, converted in code) and a **machine value** (original ISO/UTC). The agent shows one and books with the other. **Never let the LLM do timezone arithmetic.**
+
+**Keep the repo as source of truth:** the new tool lives in ElevenLabs (created by API) and the workflow references it by id — update your build script (the tool-id const + the name in node goals) and re-generate the agent JSON, so a future `agents push` doesn't revert the fix. The old integration tool is left orphaned (unused) — keep or delete it.
