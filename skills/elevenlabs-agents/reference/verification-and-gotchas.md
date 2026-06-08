@@ -53,6 +53,15 @@ If two keys you believed were "the same account" return different identities, th
 
 A small hosted LLM will invent a value for a tool parameter even when the parameter's description says "do not guess" — e.g. it sent `eventTypeId: 1` (a public demo id) instead of the real one, silently booking against the wrong resource. On `api_integration_webhook` tools the schema's `constant_value` does **not** persist (the schema is owned by the integration). The reliable fix for a 397B-class model: **state the exact value in the workflow node's prompt** ("the X id is ALWAYS 12345 — use it, never guess"). Verify it took by reading the tool call's `params_as_json` in the next conversation. For weaker models, the bulletproof fallback is to rebuild the tool as a plain `webhook` tool with the value hardcoded in the URL/body so the LLM can't supply it at all.
 
+### It's the model SIZE, not the tool and not `reasoning_effort`
+
+Observed in an A/B: a large model (e.g. `qwen35-397b-a17b`, even with `reasoning_effort: low`) does NOT invent a `required` param value even on a "permissive" tool (param left to the LLM, no `constant_value`/`dynamic_variable`). The SAME tool, with a small/"mini" model, DOES produce invented placeholders. The integration tool doesn't validate the value — a `required` param without a `constant_value`/`dynamic_variable` is the LLM's responsibility either way (confirm which params are the model's via `GET /convai/tools/{id}` → see [tools-and-integrations.md](tools-and-integrations.md)).
+
+So if your agent hallucinates params:
+
+- **It's not the tool — it's the model.** Either (a) move to a more capable model, or (b) replace the integration tool with your own **`webhook` tool whose backend DERIVES/validates the param** (from conversation state or an already-captured datum) instead of trusting the LLM's arg. Backend derivation makes even a small model reliable, and is sturdier than hoping the model "behaves." (Full wrap procedure in [tools-and-integrations.md](tools-and-integrations.md).)
+- **`reasoning_effort` is NOT the lever.** The large model that didn't invent ran at `low`; the mini that did invent ran at the provider default `medium`. Tool-calling reliability tracks model size/quality (and backend validation), not the reasoning level — don't "turn up the reasoning" expecting it to stop inventing arguments.
+
 ## IDN / punycode for SMTP-backed webhook tools
 
 If a webhook tool (or its backing service) authenticates SMTP for a mailbox on an **IDN domain** (ñ / non-ASCII), the SMTP username must be the **punycode** form (`user@xn--…`), not the Unicode form, or auth fails (`535`). The display name can stay Unicode.

@@ -67,6 +67,10 @@ POST /convai/api-integrations/{integration_id}/connections
 
 > After repointing, the agent's referenced tools must ALL exist. If you delete an old tool while a *cached* conversation still references it, that conversation fails with `Documents with ids {…} not found` — see the cache trap in [operating-cli-api.md](operating-cli-api.md).
 
+### Inspect a tool's REAL schema to diagnose param hallucination
+
+When an agent "invents" a parameter value, the first step is to confirm whether that param is even the LLM's to fill. `GET /convai/tools/{id}` returns the real parameter schema: `required[]`, and per property `dynamic_variable`, `constant_value`, `is_system_provided`, `is_omitted`. If all of those are empty/false for a property, the value comes **from the LLM** (it's the model's responsibility); if `constant_value`/`dynamic_variable`/`is_system_provided` is set, the platform supplies it. Read this before blaming the prompt — it tells you exactly which params the model is choosing.
+
 ### A parameter the LLM shouldn't fill
 
 On integration tools the request schema (and its `constant_value`) is owned by the integration and won't persist your edits. If a small model keeps guessing a parameter (an id, a filter), pin the value in the workflow **node prompt**, or rebuild as a plain `webhook` tool with the value baked in. Also watch enum-valued filters: passing an invalid status filter (e.g. a record's own status string used as a list filter) silently returns zero rows — use the documented filter values only. See [verification-and-gotchas.md](verification-and-gotchas.md).
