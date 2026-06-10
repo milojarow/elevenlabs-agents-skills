@@ -39,6 +39,16 @@ elevenlabs agents push            # uploads the local JSON
 
 For any non-trivial agent, don't hand-edit the pulled JSON. Keep a **transform script** that reads the pulled config, applies your config (prompt from a `.txt`, model, KB, workflow, guardrails) and writes it back. Then `push`. Benefits: the agent's full intended state is reproducible and in git; a push always reflects the complete intent (so the "drafts lost on push" risk is moot — there are no drifting UI drafts to protect). The system prompt lives in its own file the script reads in.
 
+## Creating a NEW agent via `POST /convai/agents/create`
+
+The pull/edit/push flow above is for an EXISTING agent. Creating one from scratch has its own validations that bite — especially when you seed the body by cloning a pulled template (the natural move):
+
+- **`platform_settings.data_collection_scopes` must be a dict, not a list.** Sending `[]` → 422 `dict_type "Input should be a valid dictionary"`. Use `{}`.
+- **You cannot send inline `prompt.tools` AND `prompt.tool_ids` together** → 422 `both_tools_and_tool_ids_provided`. A pull ALWAYS brings `tools` inline (including system tools), so a cloned template trips this. Fix in the build: `delete prompt.tools`, then declare system tools via `built_in_tools` and webhook tools via `tool_ids`.
+- **A cloned template drags in the previous agent's inheritances** — scrub these four before create: `platform_settings.data_collection` (old business's fields), `first_message`, `conversation.text_only`, `dynamic_variables`.
+
+A successful create returns `{agent_id, main_branch_id, initial_version_id}` — save them to `agents.json` (same shape `agents pull` produces).
+
 ## draft ≠ saved ≠ what a conversation uses — THE trap
 
 Three distinct states. Confusing them is the #1 "my change didn't take":
