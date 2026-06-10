@@ -27,6 +27,15 @@ conversation_config: {
 
 **Template fields that bite if you forget to overwrite them** after pulling someone else's agent: `first_message`, `language`, `tts.voice_id`, `conversation.text_only`, `prompt.timezone`. They silently keep the source agent's values.
 
+## Naming an agent: the resource name ≠ the persona
+
+Two distinct names, on two distinct planes — decide both when creating an agent:
+
+- The **agent name on the platform** (dashboard + `name` in the config + the `agent_configs/` filename) is **functional/descriptive**: `<business> <function>` (e.g. `acme order taker`, `<business> assistant`, `insurance advisor`).
+- The **persona** — how the bot introduces itself in chat (a first-name character) — lives ONLY in the system prompt / `first_message`, NEVER as the platform agent name.
+
+Why: one dashboard lists agents for many businesses; a functional name tells you whose it is and what it does without opening it. The persona is user-facing marketing and can change without renaming the resource. (The agent's repo may take the persona's name — no conflict, different planes.)
+
 ## Model strings
 
 The hosted models rotate — **confirm live with `GET /convai/llm/list`** (it also flags deprecation, context/token limits, image-input). Seen in the wild: `qwen35-397b-a17b` ("great for agentic"), `gpt-oss-120b`; the older `glm-*` family gets deprecated (the UI will recommend a replacement). Claude / Gemini / OpenAI model ids are also selectable. Don't hardcode a model you didn't see in `/llm/list`.
