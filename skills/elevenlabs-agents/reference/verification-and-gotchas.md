@@ -35,6 +35,28 @@ This is NOT "the simulator mocks/skips tool execution" — the entire state mach
 - **simulate is useful only** for testing the base system prompt / persona / a tool-less agent.
 - **To test a workflow** (routing, per-node tools, an OTP/verify/find/cancel chain), run a **real conversation** (widget or client) and read the transcript. There is no shortcut.
 
+## Headless real conversation via WebSocket (how to test without a browser)
+
+Since `simulate-conversation` bypasses the workflow, a *real* conversation is the only way to exercise routing, per-node tools and RAG — and you can drive one headless over a WebSocket, no browser:
+
+```
+GET /convai/conversation/get-signed-url?agent_id=<id>   (header xi-api-key)
+→ {"signed_url":"wss://..."}  → open the WebSocket
+```
+
+Protocol observed (text-only agent):
+
+- On open, send `{"type":"conversation_initiation_client_data"}`.
+- Server sends `conversation_initiation_metadata` → carries `conversation_id` (note it to read the transcript afterward).
+- User turn: `{"type":"user_message","text":"..."}`.
+- **A text-only agent's reply arrives as `agent_chat_response_part`** (start/delta/stop streaming), NOT only as `agent_response` — a client that listens only for `agent_response` misses the text. Accumulate the deltas.
+- Tool calls surface as `agent_tool_response` with `{tool_name, is_called, is_error, is_blocked}` — this is the proof the webhook actually fired.
+- Keepalive: reply to `{"type":"ping"}` with `{"type":"pong","event_id":...}`.
+
+A ~60-line runner with no deps suffices: Bun has a native WebSocket, so `bun run` (or `podman run --rm oven/bun:<tag>` if the host lacks bun) can script the turns, capture events and assert the tool fired. Close on a hard timeout (~90s).
+
+**Caveat:** a real conversation runs the REAL webhooks. If a tool sends email or writes a production DB, redirect the destination before the test and clean up after.
+
 ## The cross-account integration trap
 
 An integration tool (Cal.com and similar) authenticates as **one connected account**. A *public* resource can be acted on across accounts, but **listing/managing is account-scoped**. Classic symptom: **"creating works, but finding/listing/cancelling returns empty."**
