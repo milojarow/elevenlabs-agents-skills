@@ -54,6 +54,30 @@ The hosted models rotate — **confirm live with `GET /convai/llm/list`** (it al
 
 Fix the "0 B" by re-adding the docs in the agent's own KB with RAG on, then confirm the storage counter is non-zero before expecting retrieval.
 
+#### The exact endpoint that triggers indexing
+
+Uploading the file and triggering the RAG index are **two separate calls** — the second is the non-obvious one:
+
+```bash
+# 1. upload the doc → returns its id
+curl -X POST -H "xi-api-key: $KEY" \
+  -F "file=@knowledge-base/doc.md;type=text/markdown" -F "name=<name>" \
+  https://api.elevenlabs.io/v1/convai/knowledge-base/file
+# → {"id":"<doc_id>", ...}
+
+# 2. TRIGGER the RAG index (this is the step that's easy to miss)
+curl -X POST -H "xi-api-key: $KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"multilingual_e5_large_instruct"}' \
+  https://api.elevenlabs.io/v1/convai/knowledge-base/<doc_id>/rag-index
+# → {"id":..., "status":"new", "progress_percentage":0, "document_model_index_usage":{"used_bytes":N}}
+
+# 3. poll until succeeded
+curl -H "xi-api-key: $KEY" .../knowledge-base/<doc_id>/rag-index
+# → {"indexes":[{"status":"succeeded","progress_percentage":100.0,...}]}
+```
+
+Hard check: `status: succeeded` AND `used_bytes > 0`. A ~5 KB doc indexes in seconds. The index `model` MUST match the consuming agent's `rag.embedding_model`.
+
 ## System dynamic variables
 
 Reference runtime values in any prompt with `{{system__<name>}}` — **system variables are auto-available** (no need to declare them; only *custom* variables go in `dynamic_variable_placeholders`). Verified ones include:
