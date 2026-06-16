@@ -24,6 +24,16 @@ hub: {
 - **Per-node tool scoping:** put a node's allowed tool ids in `additional_tool_ids`. A routing/conversation node that shouldn't call tools gets `[]`. The flow's tools are the **union across nodes** — every tool a node references must exist (a deleted/stale id fails the conversation on node entry; see [operating-cli-api.md](operating-cli-api.md)).
 - The **node prompt is where the per-state logic lives** — including pinning a value the LLM must not guess (see [tools-and-integrations.md](tools-and-integrations.md)).
 
+## Per-node knowledge base: additive, genuinely scoped ⚠️
+
+A node's `additional_knowledge_base` is an array of KnowledgeBaseLocator objects `{type, id, name, usage_mode}` (the workflow lives at the **top-level** `workflow.nodes`, NOT under `conversation_config`).
+
+- **Additive by default:** a node's KB is added **on top of** the agent's global KB (`conversation_config.agent.prompt.knowledge_base`). A node carrying both the global doc and a node-specific doc retains access to BOTH.
+- **Replace semantics are dashboard-only:** the dashboard exposes an **'Include Global Knowledge Base'** toggle that, when turned OFF, makes the node's KB **replace** the global instead of adding to it. That toggle is **not a field in the update OpenAPI** — it can only be set via the dashboard. Trap: if you manage as code and need replace-not-add semantics, the API alone can't express it.
+- **Scoping is real:** knowledge attached to one node is genuinely isolated to that node within the same agent. A doc defining a distinctive term attached to only one node lets that node resolve and act on the term, while another node (without the doc) treats the same term as unknown. Same agent, same word, different node = different knowledge.
+
+**Verify node scoping with a real conversation, not `simulate`:** attach a doc with an invented/unique term to ONE node, drive the SAME user message through two different nodes over a real WS conversation, and diff the transcripts (transcript = ground truth, not the agent's self-report). `simulate` does NOT run the workflow, so it cannot validate node-scoped behavior. See [verification-and-gotchas.md](verification-and-gotchas.md). The text/index endpoints for creating these docs are in [agent-configuration.md](agent-configuration.md).
+
 ## Edges + the `backward_condition` round-trip ⚠️
 
 An edge has a `forward_condition` and an optional `backward_condition`:

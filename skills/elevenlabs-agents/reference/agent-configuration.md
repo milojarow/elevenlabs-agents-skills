@@ -93,6 +93,22 @@ curl -H "xi-api-key: $KEY" .../knowledge-base/<doc_id>/rag-index
 
 Hard check: `status: succeeded` AND `used_bytes > 0`. A ~5 KB doc indexes in seconds. The index `model` MUST match the consuming agent's `rag.embedding_model`.
 
+#### Text docs (no file), and the index/poll/delete calls
+
+Beyond the file-upload path, you can create a KB doc straight from text and manage its lifecycle (base `https://api.elevenlabs.io/v1/convai`, auth `xi-api-key`):
+
+```bash
+POST /knowledge-base/text   {text, name}                       # → {id}   (create a TEXT doc, no file)
+POST /knowledge-base/{id}/rag-index  {model:"multilingual_e5_large_instruct"}   # index — model MUST match the agent's rag.embedding_model
+GET  /knowledge-base/{id}/rag-index                            # poll: success = status "succeeded" AND document_model_index_usage.used_bytes > 0
+GET  /knowledge-base/rag-index                                 # workspace-wide: total_used_bytes 0 = the "RAG Storage 0 B" symptom (nothing embedded anywhere)
+DELETE /knowledge-base/{id}                                    # → 204
+```
+
+#### RAG retrieves single distinctive words
+
+With `usage_mode: auto` (RAG-only retrieval) the KB **does** retrieve on a single-word query when the term is distinctive — correcting the common assumption that RAG is useless for short jargon. Caveat (not measured): low-signal common jargon, very short common words, or a much larger document may retrieve less reliably.
+
 ## System dynamic variables
 
 Reference runtime values in any prompt with `{{system__<name>}}` — **system variables are auto-available** (no need to declare them; only *custom* variables go in `dynamic_variable_placeholders`). Verified ones include:
