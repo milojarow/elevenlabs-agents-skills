@@ -57,6 +57,17 @@ A ~60-line runner with no deps suffices: Bun has a native WebSocket, so `bun run
 
 **Caveat:** a real conversation runs the REAL webhooks. If a tool sends email or writes a production DB, redirect the destination before the test and clean up after.
 
+### Handshake context injection is read ONCE, on a fresh socket only ⚠️
+
+Dynamic variables / session context injected at the convai WebSocket handshake (`conversation_initiation_client_data`, dynamic variables) are read **once, at socket open**. A persistent/reused socket for an ongoing conversation does **not** re-read or re-inject — any value changed after the socket opened is invisible to that live session.
+
+A common integration is a long-lived bridge that holds one WS session per conversation and injects context (a customer id, an order state) at the handshake. That covers the dead-socket → fresh-socket case correctly, but silently fails if you expect a **mid-conversation** context change to reach the agent through the same socket. To deliver changed context within one live socket you must either:
+
+- open a **new** connection (so the handshake runs again), or
+- push the data through a **server/webhook tool** the agent calls at runtime — the tool result is the only channel that updates a session **in flight**.
+
+Pairing handshake injection (for fresh sockets) with a live server-tool rail (e.g. an `order-status`-style webhook) covers both cases. Verified end-to-end with a WS driver: a handshake-injected dynamic var took effect only on a fresh socket; a reused socket did not re-inject.
+
 ## The cross-account integration trap
 
 An integration tool (Cal.com and similar) authenticates as **one connected account**. A *public* resource can be acted on across accounts, but **listing/managing is account-scoped**. Classic symptom: **"creating works, but finding/listing/cancelling returns empty."**
