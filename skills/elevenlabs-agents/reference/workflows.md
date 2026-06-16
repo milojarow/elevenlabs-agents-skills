@@ -41,6 +41,17 @@ e_hub_appointment: {
 
 So a hub-and-spokes flow: each spoke is reached by a forward edge carrying its own `backward_condition` for "user backed out." Don't model the return as its own edge.
 
+## When a greeting node owns the opening, keep `first_message` EMPTY ⚠️
+
+If a workflow's greeting/entry node is responsible for the opening, putting content in `conversation_config.agent.first_message` backfires two ways:
+
+1. The downstream greeting node treats that `first_message` content as **already said** and dedupes it away, so it is never presented to the user.
+2. The embedded chat widget does **not render turn 0** (the `first_message`) at all.
+
+Operators naturally stuff the opening (a menu, a list of options) into `first_message`, then are baffled when the bot never shows it. The fix is counter-intuitive: **empty out `first_message`** and let the workflow node own the opening — it then presents the content reliably on every conversation.
+
+Rule of thumb: use `first_message` only when **no** workflow node owns the opening; if a greeting node owns it, keep `first_message` empty. (Measured: a non-empty `first_message` listing options was deduped by the greeting node and never appeared, and the widget did not paint turn 0; emptying it made the node present the options every time.)
+
 ## Routing is internal `transfer_to_agent`
 
 When a workflow takes an edge, the transcript shows a system `transfer_to_agent` tool call (same agent id, `to_node: <target>`). That's normal — it's how the engine moves between nodes. You'll see `notify_condition_*_met` entries with the `edge_id` and `target_node_id` in the tool results.
