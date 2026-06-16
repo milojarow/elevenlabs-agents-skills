@@ -36,6 +36,12 @@ Two distinct names, on two distinct planes — decide both when creating an agen
 
 Why: one dashboard lists agents for many businesses; a functional name tells you whose it is and what it does without opening it. The persona is user-facing marketing and can change without renaming the resource. (The agent's repo may take the persona's name — no conflict, different planes.)
 
+## `force_pre_tool_speech` is silently reset to false on a `text_only` agent ⚠️
+
+Setting `force_pre_tool_speech=true` has **no effect** on a `text_only` (chat) agent — the server resets it to false on push. If you copy a voice agent's config (or follow voice-agent guidance) onto a chat agent and rely on this flag to make the agent speak before a tool call, it silently does nothing; don't debug your prompt for the missing utterance, the flag was never honored.
+
+For a text-only agent the setting is unnecessary anyway: deliver any pre-tool / closing utterance via the `end_call` system tool's `system__message_to_speak` field (or the working node's confirmation message). (Observed: after a push, the server had reset `force_pre_tool_speech` from true to false on a `text_only` agent.)
+
 ## Model strings
 
 The hosted models rotate — **confirm live with `GET /convai/llm/list`** (it also flags deprecation, context/token limits, image-input). Seen in the wild: `qwen35-397b-a17b` ("great for agentic"), `gpt-oss-120b`; the older `glm-*` family gets deprecated (the UI will recommend a replacement). Claude / Gemini / OpenAI model ids are also selectable. Don't hardcode a model you didn't see in `/llm/list`.
