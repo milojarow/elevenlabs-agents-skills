@@ -1,6 +1,6 @@
 {
   "name": "elevenlabs-agents-skills",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Use when building, configuring, or debugging an ElevenLabs Conversational AI agent (Agents Platform) — agent config, workflows, tools/integrations, RAG, guardrails — via the elevenlabs CLI or convai REST API.",
   "author": {
     "name": "milojarow",

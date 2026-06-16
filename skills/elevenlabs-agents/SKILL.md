@@ -40,6 +40,7 @@ Two principles save most lost hours:
 | Operating: **CLI push/pull, convai API, draft≠saved + cache** | [reference/operating-cli-api.md](reference/operating-cli-api.md) |
 | **Objective verification**, simulate's blind spot, cross-account integration trap | [reference/verification-and-gotchas.md](reference/verification-and-gotchas.md) |
 | Embedding the chat/voice **widget** on a site | [reference/widget-embedding.md](reference/widget-embedding.md) |
+| **Procedures** (alpha): no headless authoring path, prefer the prompt | [reference/procedures.md](reference/procedures.md) |
 
 ## Quick reference
 
