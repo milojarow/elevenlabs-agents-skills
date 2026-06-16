@@ -75,6 +75,14 @@ The convai agent has **no structured stash for inbound media** (e.g. a location 
 
 Verify live: a pin sent as the first message was originally ignored (generic greeting, signal wasted); adding an edge + greeting recognition routed it to the correct branch, confirmed over a real WS conversation against transcript ground-truth.
 
+## A coarse tool gives confident false answers — split the node into ordered steps, each calling the tool with the right signal ⚠️
+
+When a single tool only sees a **coarse** signal but the user asks a **finer** question, the agent answers confidently and **wrong**. Example: a tool that only checks time-of-availability cannot validate a specific location/address; asked "do you deliver to THIS address?", the agent gives a false "yes" because the only tool it has says "we're open / serving now." The tool never sees the coordinates, so it can't say no. This looks like a hallucination but is really a **tool-granularity bug**.
+
+**Fix (platform-shaped):** restructure the workflow **node into ordered steps**, each step calling the tool that actually has the relevant signal — e.g. step 1 calls the time/blackout-window tool, a separate step 2 calls a tool that DOES see the coordinates for the in-zone check. Don't expect one tool (or the LLM) to bridge a signal it was never given; no amount of prompt tweaking makes a time-only tool aware of a location.
+
+Verify against transcript ground-truth (`simulate` won't exercise the node). Measured: a time-only availability tool gave an out-of-zone pin a generic "yes, we cover the whole area" false-positive; restructuring the node to separate the blackout/time check from the coordinate-aware in-zone check fixed it (in-zone, out-of-zone, and forced-blackout cases all verified live).
+
 ## Make the node assert its capability (so it doesn't refuse)
 
 A node that owns a capability must SAY so in its prompt, or the model may refuse ("I don't have access to do that") instead of using its tools. If a "manage X" node has the tools but the base/hub prompt implies the agent can't, the model hedges. State plainly in the relevant node prompt: "doing X is your job, with your tools — never tell the user you can't or send them elsewhere."
