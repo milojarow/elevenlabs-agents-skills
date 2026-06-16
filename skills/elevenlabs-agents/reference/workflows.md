@@ -66,6 +66,15 @@ Rule of thumb: use `first_message` only when **no** workflow node owns the openi
 
 When a workflow takes an edge, the transcript shows a system `transfer_to_agent` tool call (same agent id, `to_node: <target>`). That's normal — it's how the engine moves between nodes. You'll see `notify_condition_*_met` entries with the `edge_id` and `target_node_id` in the tool results.
 
+## Inbound non-text input must be flattened to TEXT, and a first-message route must recognize it ⚠️
+
+The convai agent has **no structured stash for inbound media** (e.g. a location pin, an attachment). Teams assume the platform will surface it as structured data the agent can read — it won't.
+
+1. **Lower it to text in your backend.** Flatten the input into a TEXT message (e.g. `[location: lat,lng]`) forwarded into the agent turn. The LLM then parses the values straight out of that text and can reuse them verbatim in later tool calls (quote, commit). **Whatever literal text format the backend injects is exactly what the agent sees** — so any test/driver script MUST reproduce the EXACT production format, or it exercises a path production never hits. (A driver that injects a prettier/different literal than production is a real foot-gun — caught as a divergence when a test used a different literal than the production format.)
+2. **Route on it when it's the FIRST message.** If that structured input can arrive as the opening message, a generic greeting node will **ignore the early signal** unless a workflow edge + the greeting/entry node are wired to recognize the message **content** (not just plain-text intent) and route on it. Without that wiring the agent falls through to a generic greeting and uses the signal much later, or never.
+
+Verify live: a pin sent as the first message was originally ignored (generic greeting, signal wasted); adding an edge + greeting recognition routed it to the correct branch, confirmed over a real WS conversation against transcript ground-truth.
+
 ## Make the node assert its capability (so it doesn't refuse)
 
 A node that owns a capability must SAY so in its prompt, or the model may refuse ("I don't have access to do that") instead of using its tools. If a "manage X" node has the tools but the base/hub prompt implies the agent can't, the model hedges. State plainly in the relevant node prompt: "doing X is your job, with your tools — never tell the user you can't or send them elsewhere."
