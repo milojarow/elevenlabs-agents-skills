@@ -40,6 +40,7 @@ Two principles save most lost hours:
 | Operating: **CLI push/pull, convai API, draft≠saved + cache** | [reference/operating-cli-api.md](reference/operating-cli-api.md) |
 | **Objective verification**, simulate's blind spot, cross-account integration trap | [reference/verification-and-gotchas.md](reference/verification-and-gotchas.md) |
 | Embedding the chat/voice **widget** on a site | [reference/widget-embedding.md](reference/widget-embedding.md) |
+| **WhatsApp channel**: import flow is broken → bridge your own Cloud API transport | [reference/whatsapp-channel.md](reference/whatsapp-channel.md) |
 | **Procedures** (alpha): no headless authoring path, prefer the prompt | [reference/procedures.md](reference/procedures.md) |
 
 ## Quick reference
@@ -67,3 +68,4 @@ Two principles save most lost hours:
 - **`simulate-conversation` shows the agent refusing / not using tools.** It runs only the base prompt, not the workflow (so no per-node tools). Test a workflow with a real conversation, then read the transcript. → verification-and-gotchas.md
 - **Integration tool: creating works but find/list/cancel returns empty.** The connection authenticates as one account; a public resource is bookable cross-account but listing is account-scoped. Verify the connected account. → tools-and-integrations.md
 - **A small hosted LLM guesses a parameter it shouldn't** (e.g. an id). Pin the value in the node prompt — the schema `constant_value` doesn't persist on integration tools. → workflows.md
+- **WhatsApp number-import never shows your self-registered Cloud API number.** ElevenLabs' embedded-signup import doesn't ingest a number you registered yourself to Meta's Cloud API (and has no headless path). Run your own Cloud API transport and bridge to the agent over its WebSocket. → whatsapp-channel.md
